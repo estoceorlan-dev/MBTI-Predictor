@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PersonaScope | MBTI Predictor</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+</head>
+<body class="{% if result %}body-locked{% endif %}">
+  <div class="shell">
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-badge">🧠</div>
+        <div>PersonaScope</div>
+      </div>
+      <div class="topbar-links">
+        <a class="link-chip" href="#about">About</a>
+        <a class="link-chip" href="#quiz">Questionnaire</a>
+        <a class="link-chip" href="#quiz">Take the test</a>
+      </div>
+    </div>
+
+    <section class="hero" id="about">
+      <div class="hero-card">
+        <div class="eyebrow">✨ Personality prediction powered by your questionnaire answers</div>
+        <h1>Discover your likely MBTI type with a smoother, friendlier test.</h1>
+        <p class="hero-copy">
+          This experience turns your answers into a machine-learning MBTI prediction, then validates how strong that prediction looks across each personality dimension so the result feels more useful and less random.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#quiz">🚀 Start the questionnaire</a>
+          <button class="btn btn-secondary" type="button" onclick="document.getElementById('howItWorks').scrollIntoView({behavior: 'smooth'})">🔎 How it works</button>
+        </div>
+        <div class="hero-stats">
+          <div class="stat">
+            <strong>{{ total_questions }}</strong>
+            <span>Questions answered on a simple 1 to 5 scale.</span>
+          </div>
+          <div class="stat">
+            <strong>16</strong>
+            <span>Possible MBTI outcomes with type-specific visuals.</span>
+          </div>
+          <div class="stat">
+            <strong>4</strong>
+            <span>Validation dimensions shown in the final result.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-side">
+        <div class="panel" id="howItWorks">
+          <h2>How the experience works</h2>
+          <p>
+            Answer honestly, track your progress live, and submit only when everything is complete. Your result then shows both the predicted type and how confident the model appears on each letter pair.
+          </p>
+          <div class="feature-list">
+            <div class="feature-item">
+              <div class="feature-icon">📝</div>
+              <div>
+                <strong>Guided questionnaire</strong>
+                <span>Large answer targets, clear scale labels, and instant progress updates.</span>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon">✅</div>
+              <div>
+                <strong>Submission validation</strong>
+                <span>Unanswered items are highlighted so users do not lose their place.</span>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon">📊</div>
+              <div>
+                <strong>Readable results</strong>
+                <span>Confidence, weakest dimension, and trait bars help explain the prediction.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Before you begin</h2>
+          <p class="section-copy">
+            Try answering based on your usual behavior, not your ideal self. That tends to produce steadier results and a better validation score.
+          </p>
+          <div class="pill-row">
+            <div class="pill">⏱️ About a few minutes</div>
+            <div class="pill">🎯 1 = strongly disagree</div>
+            <div class="pill">💬 5 = strongly agree</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="quiz">
+      <div class="quiz-intro">
+        <div>
+          <h2 class="section-title">Questionnaire</h2>
+          <p class="section-copy">Move through each statement and choose the option that best matches you.</p>
+          <div class="pill-row">
+            <div class="pill">⬅️ Disagree on the left</div>
+            <div class="pill">⚖️ Neutral in the middle</div>
+            <div class="pill">➡️ Agree on the right</div>
+          </div>
+        </div>
+        <div class="pill">🧩 Every question is required</div>
+      </div>
+
+      <div class="progress-shell">
+        <div class="progress-card">
+          <div class="progress-head">
+            <div class="progress-label">Answer progress</div>
+            <div class="progress-meta"><span id="progressCount">0</span> / {{ total_questions }} completed</div>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+        </div>
+      </div>
+
+      {% if error %}
+        <div class="error">{{ error }}</div>
+      {% endif %}
+
+      <form method="POST" id="quizForm" novalidate>
+        <div class="question-grid">
+          {% for col in question_cols %}
+            <article class="question-card pending" data-question-card data-question-name="{{ col }}">
+              <div class="question-top">
+                <div class="question-number">{{ loop.index }}</div>
+                <h3 class="question-title">{{ question_texts[col] }}</h3>
+                <div class="question-status" data-status-text>Waiting</div>
+              </div>
+
+              <div class="likert-wrap">
+                <div class="likert">
+                  <div class="likert-side">Strongly<br>Disagree</div>
+
+                  {% for score in range(1, 6) %}
+                    <div class="answer-choice">
+                      <input
+                        type="radio"
+                        id="{{ col }}_{{ score }}"
+                        name="{{ col }}"
+                        value="{{ score }}"
+                        {% if submitted_answers.get(col) == score %}checked{% endif %}
+                      >
+                      <label class="choice-label" for="{{ col }}_{{ score }}">
+                        <span class="choice-dot size-{{ score }}"></span>
+                        <span class="choice-text">{{ score }}</span>
+                      </label>
+                    </div>
+                  {% endfor %}
+
+                  <div class="likert-side">Strongly<br>Agree</div>
+                </div>
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+
+        <div class="submit-wrap">
+          <div class="submit-card">
+            <div class="submit-copy">
+              <strong>Ready to see your prediction?</strong>
+              <span id="submitHint">Complete all questions to unlock the clearest result validation.</span>
+            </div>
+            <button type="submit" class="btn btn-primary submit-btn">🎉 Reveal my MBTI result</button>
+          </div>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  {% if result %}
+    <div class="modal-backdrop show" id="resultModal">
+      <div class="result-modal">
+        <div class="result-header">
+          <div class="result-hero">
+            <div class="result-pill">🌟 Prediction complete</div>
+            <div class="avatar-row">
+              {% if avatar_path %}
+                <img class="avatar" src="{{ url_for('static', filename=avatar_path) }}" alt="{{ result }} avatar">
+              {% else %}
+                <div class="avatar-fallback">{{ result }}</div>
+              {% endif %}
+              <div>
+                <p class="mini-text inline-reset">Your likely type</p>
+                <h2 class="result-code">{{ result }}</h2>
+              </div>
+            </div>
+            <p class="result-desc">{{ description }}</p>
+          </div>
+
+          <div class="validation-card">
+            <p class="mini-text inline-reset">Result validation</p>
+            <div class="confidence-score">
+              <strong>{{ result_summary["overall_confidence"] }}%</strong>
+              <span>overall confidence</span>
+            </div>
+            <div class="validation-badge">{{ result_summary["validation_label"] }}</div>
+            <p class="section-copy">{{ result_summary["validation_message"] }}</p>
+            <div class="bar">
+              <div class="fill" style="width: {{ result_summary['overall_confidence'] }}%;"></div>
+            </div>
+            <p class="mini-text result-note">
+              Closest call: <strong>{{ result_summary["weakest_dimension"]["label"] }}</strong>
+              with a {{ result_summary["weakest_dimension"]["margin"] }}% margin between
+              {{ result_summary["weakest_dimension"]["winner"] }} and
+              {{ result_summary["weakest_dimension"]["loser"] }}.
+            </p>
+          </div>
+        </div>
+
+        <div class="traits-grid">
+          <div class="trait-card validation-card">
+            <div class="trait-head"><span>E vs I</span><span>{{ trait_scores["E"] }}% / {{ trait_scores["I"] }}%</span></div>
+            <div class="mini-text">How strongly the model leans toward Extraversion or Introversion.</div>
+            <div class="bar"><div class="fill" style="width: {{ [trait_scores['E'], trait_scores['I']]|max }}%;"></div></div>
+          </div>
+          <div class="trait-card validation-card">
+            <div class="trait-head"><span>S vs N</span><span>{{ trait_scores["S"] }}% / {{ trait_scores["N"] }}%</span></div>
+            <div class="mini-text">How strongly the model leans toward Sensing or Intuition.</div>
+            <div class="bar"><div class="fill" style="width: {{ [trait_scores['S'], trait_scores['N']]|max }}%;"></div></div>
+          </div>
+          <div class="trait-card validation-card">
+            <div class="trait-head"><span>T vs F</span><span>{{ trait_scores["T"] }}% / {{ trait_scores["F"] }}%</span></div>
+            <div class="mini-text">How strongly the model leans toward Thinking or Feeling.</div>
+            <div class="bar"><div class="fill" style="width: {{ [trait_scores['T'], trait_scores['F']]|max }}%;"></div></div>
+          </div>
+          <div class="trait-card validation-card">
+            <div class="trait-head"><span>J vs P</span><span>{{ trait_scores["J"] }}% / {{ trait_scores["P"] }}%</span></div>
+            <div class="mini-text">How strongly the model leans toward Judging or Perceiving.</div>
+            <div class="bar"><div class="fill" style="width: {{ [trait_scores['J'], trait_scores['P']]|max }}%;"></div></div>
+          </div>
+        </div>
+
+        <div class="dimensions-grid">
+          {% for item in result_summary["dimension_results"] %}
+            <div class="dimension-card">
+              <div class="dimension-head">
+                <span>{{ item["label"] }}</span>
+                <span>{{ item["winner"] }} {{ item["winner_score"] }}%</span>
+              </div>
+              <div class="mini-text">
+                {{ item["winner"] }} leads {{ item["loser"] }} by {{ item["margin"] }}%.
+              </div>
+              <div class="bar"><div class="fill" style="width: {{ item['winner_score'] }}%;"></div></div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <div class="actions">
+          <a href="{{ url_for('home') }}" class="btn btn-primary">🔁 Take it again</a>
+          <button type="button" class="btn btn-secondary" onclick="window.print()">🖨️ Print result</button>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
